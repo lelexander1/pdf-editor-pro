@@ -1,28 +1,17 @@
 {
   "name": "pdf-editor-pro",
-  "version": "1.0.3",
-  "description": "Editor de PDF interactivo",
+  "version": "1.0.4",
+  "description": "Editor de PDF avanzado con Electron",
   "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder"
+  },
   "dependencies": {
     "electron-updater": "^6.1.7"
   },
   "devDependencies": {
-    "electron": "^29.0.0",
-    "electron-builder": "^24.9.1"
-  },
-  "build": {
-    "appId": "com.joko.pdfeditor",
-    "productName": "PDF Editor Pro",
-    "win": {
-      "target": "nsis",
-      "icon": "build/favicon.ico"
-    },
-    "publish": {
-      "provider": "github",
-      "owner": "lelexander1",
-      "repo": "pdf-editor-pro"
-    }
-  },
-  "author": "Joko",
-  "license": "ISC"
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.0"
+  }
 }

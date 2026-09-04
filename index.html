@@ -4,152 +4,144 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PDF Editor Pro</title>
-    <!-- Configuración de seguridad básica para Electron -->
-    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';">
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com;">
     
     <style>
-        /* ==========================================
-           1. ESTILOS GLOBALES
-           ========================================== */
+        :root {
+            --bg-body: #f3f4f6;
+            --bg-sidebar: #1f2937;
+            --text-sidebar: white;
+            --bg-tool: #374151;
+            --text-label: #9ca3af;
+            --btn-secondary: #4b5563;
+            --btn-secondary-hover: #6b7280;
+            --border-color: #4b5563;
+        }
+
+        body.light-theme {
+            --bg-body: #e5e7eb;
+            --bg-sidebar: #ffffff;
+            --text-sidebar: #111827;
+            --bg-tool: #f3f4f6;
+            --text-label: #4b5563;
+            --btn-secondary: #e5e7eb;
+            --btn-secondary-hover: #d1d5db;
+            --border-color: #d1d5db;
+        }
+
         body {
             margin: 0;
             padding: 0;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             display: flex;
             height: 100vh;
-            background-color: #f3f4f6;
-            overflow: hidden; /* Evita scroll en toda la ventana, se maneja por secciones */
+            background-color: var(--bg-body);
+            overflow: hidden;
+            transition: background-color 0.3s;
         }
 
-        /* ==========================================
-           2. ESTILOS DEL MENÚ LATERAL (SIDEBAR)
-           ========================================== */
         .sidebar {
             width: 280px;
-            background-color: #1f2937; /* Gris oscuro */
-            color: white;
+            background-color: var(--bg-sidebar);
+            color: var(--text-sidebar);
             padding: 20px;
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 15px;
             box-shadow: 2px 0 5px rgba(0,0,0,0.1);
             overflow-y: auto;
             z-index: 10;
         }
 
-        .sidebar h2 { 
-            margin-top: 0; 
-            font-size: 1.5rem; 
-            text-align: center; 
-            color: #60a5fa; /* Azul claro */
-        }
+        .sidebar h2 { margin-top: 0; margin-bottom: 5px; font-size: 1.5rem; text-align: center; color: #3b82f6; }
 
         .tool-group { 
             display: flex; 
             flex-direction: column; 
             gap: 8px; 
-            background: #374151; /* Fondo ligero para separar herramientas */
+            background: var(--bg-tool); 
             padding: 12px;
             border-radius: 8px;
+            border: 1px solid var(--border-color);
         }
 
-        .tool-group label { 
-            font-size: 0.85rem; 
-            color: #9ca3af; 
-            font-weight: bold;
-            text-transform: uppercase;
-        }
+        .tool-group label { font-size: 0.85rem; color: var(--text-label); font-weight: bold; text-transform: uppercase; }
 
         button, select, input[type="file"] {
             padding: 10px;
             border-radius: 5px;
             border: none;
-            background-color: #3b82f6; /* Azul estándar */
+            background-color: #3b82f6; 
             color: white;
             cursor: pointer;
             font-size: 0.9rem;
-            transition: background 0.2s;
         }
 
         button:hover { background-color: #2563eb; }
-        
-        select { 
-            background-color: white; 
-            color: #1f2937; 
-            border: 1px solid #d1d5db; 
-        }
+        select { background-color: white; color: #1f2937; border: 1px solid #d1d5db; }
+        input[type="file"] { background-color: var(--btn-secondary); color: var(--text-sidebar); font-size: 0.8rem; border: 1px solid var(--border-color); }
 
-        input[type="file"] { 
-            background-color: #4b5563; 
-            font-size: 0.8rem;
-        }
+        .btn-secondary { background-color: var(--btn-secondary); color: var(--text-sidebar); border: 1px solid var(--border-color); }
+        .btn-secondary:hover { background-color: var(--btn-secondary-hover); }
 
-        .btn-secondary { background-color: #4b5563; }
-        .btn-secondary:hover { background-color: #6b7280; }
-
-        /* ==========================================
-           3. ÁREA PRINCIPAL Y CONTENEDOR DEL PDF
-           ========================================== */
         .main-content {
             flex-grow: 1;
-            padding: 20px;
             display: flex;
-            justify-content: center;
-            align-items: center;
-            position: relative;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
         }
 
-        /* AJUSTE SOLICITADO: Contenedor para que el PDF se vea completo */
         #contenedor-editor {
+            flex-grow: 1;
+            overflow: auto;
+            padding: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        #pdf-wrapper {
             position: relative;
             background: white;
             box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-            border-radius: 4px;
-            /* Se adapta al 100% del espacio disponible sin salirse de la pantalla */
-            width: 100%;
-            height: 100%;
-            max-width: 95vw;
-            max-height: 95vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden; /* Corta elementos que se arrastren fuera del PDF */
         }
 
-        #pdf-canvas {
-            /* Se escala manteniendo la proporción original del documento */
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain;
+        #pdf-canvas { 
+            display: block; 
         }
 
-        /* Clase para los textos/imágenes que agregues dinámicamente desde JS */
         .elemento-draggable {
             position: absolute;
             cursor: move;
             user-select: none;
-            /* La transición suaviza el Control+Z y el escalado */
-            transition: transform 0.1s ease-in-out;
+            padding: 2px;
         }
     </style>
 </head>
 <body>
 
-    <!-- ==========================================
-         MENÚ LATERAL (HERRAMIENTAS)
-         ========================================== -->
     <div class="sidebar">
         <h2>PDF Editor Pro</h2>
-        
-        <!-- Grupo 1: Archivos y Elementos -->
+        <button id="btn-theme-toggle" class="btn-secondary">Modo Claro ☀️</button>
+
         <div class="tool-group">
-            <label>Cargar Archivos</label>
-            <input type="file" id="upload-pdf" accept="application/pdf">
-            <button id="btn-add-text">Añadir Texto (T)</button>
-            <input type="file" id="upload-image" accept="image/png, image/jpeg, image/jpg">
+            <label>Navegación</label>
+            <div style="display: flex; gap: 10px; align-items: center; justify-content: space-between;">
+                <button id="btn-prev" class="btn-secondary" style="padding: 5px 15px; font-weight: bold;">&lt;</button>
+                <span id="page-num" style="font-size: 0.9rem; color: var(--text-sidebar); font-weight: bold;">1 / ?</span>
+                <button id="btn-next" class="btn-secondary" style="padding: 5px 15px; font-weight: bold;">&gt;</button>
+            </div>
         </div>
 
-        <!-- Grupo 2: Estilos (NUEVO) -->
+        <div class="tool-group">
+            <label>Archivos y Elementos</label>
+            <input type="file" id="upload-pdf" accept="application/pdf" title="Cargar PDF">
+            <button id="btn-add-text">Añadir Texto (T)</button>
+            <button id="btn-borrador" style="background-color: #64748b;">Parche Blanco (Borrador)</button>
+            <input type="file" id="upload-image" accept="image/png, image/jpeg, image/jpg" title="Cargar Imagen">
+        </div>
+
         <div class="tool-group">
             <label>Estilo de Letra</label>
             <select id="select-font">
@@ -159,51 +151,38 @@
                 <option value="'Trebuchet MS', sans-serif">Trebuchet MS</option>
                 <option value="Verdana, sans-serif">Verdana</option>
             </select>
-        </div>
-
-        <!-- Grupo 3: Escalar Individual (NUEVO) -->
-        <div class="tool-group">
-            <label>Tamaño (Elemento seleccionado)</label>
-            <div style="display: flex; gap: 10px;">
-                <button id="btn-aumentar" style="flex: 1; font-weight: bold;">+</button>
-                <button id="btn-reducir" style="flex: 1; font-weight: bold;">-</button>
+            
+            <label style="margin-top: 5px;">Edición (Selección)</label>
+            <div style="display: flex; gap: 10px; margin-bottom: 8px;">
+                <button id="btn-aumentar" style="flex: 1; font-weight: bold;">+ Tamaño</button>
+                <button id="btn-reducir" style="flex: 1; font-weight: bold;">- Tamaño</button>
             </div>
+            <button id="btn-eliminar" style="background-color: #ef4444; font-weight: bold; width: 100%;">Eliminar Seleccionado</button>
         </div>
 
-        <!-- Pista visual de atajos -->
-        <div style="font-size: 0.8rem; color: #9ca3af; text-align: center; margin-top: -10px;">
-            Ctrl + Z para deshacer cambios
+        <div style="font-size: 0.75rem; color: var(--text-label); text-align: center;">
+            Suprimir para borrar / Ctrl+Z deshacer
         </div>
 
-        <!-- Grupo 4: Estado de Actualizaciones y GitHub (NUEVO) -->
         <div class="tool-group" style="margin-top: auto;">
             <label>Conexión a GitHub</label>
             <div style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; margin-bottom: 5px;">
-                <!-- El punto cambiará de color mediante app.js -->
                 <span id="status-dot" style="width: 12px; height: 12px; border-radius: 50%; background: #9ca3af; display: inline-block;"></span>
-                <span id="status-text" style="color: white; font-weight: 500;">Esperando estado...</span>
+                <span id="status-text" style="color: var(--text-sidebar); font-weight: 500;">Esperando estado...</span>
             </div>
             <button id="btn-actualizar" class="btn-secondary">Buscar Actualizaciones</button>
         </div>
     </div>
 
-    <!-- ==========================================
-         ÁREA DE VISUALIZACIÓN DEL PDF
-         ========================================== -->
     <div class="main-content">
-        <!-- Contenedor adaptativo -->
         <div id="contenedor-editor">
-            <!-- El canvas donde tu script (pdf.js) renderizará el documento -->
-            <canvas id="pdf-canvas"></canvas>
-            
-            <!-- (Los elementos como textos o imágenes se inyectarán aquí dentro mediante app.js) -->
+            <div id="pdf-wrapper">
+                <canvas id="pdf-canvas"></canvas>
+            </div>
         </div>
     </div>
 
-    <!-- ==========================================
-         LÓGICA JAVASCRIPT
-         ========================================== -->
-    <!-- Reemplaza la ruta si tu archivo tiene otro nombre o está en otra carpeta -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <script src="app.js"></script>
 
 </body>
