@@ -2,6 +2,7 @@ const { ipcRenderer } = require('electron');
 
 let historialCambios = []; 
 let elementoSeleccionado = null; 
+let contadorZIndex = 10; // Control para asegurar que lo recién seleccionado o creado flote por encima
 const contenedorEditor = document.getElementById('contenedor-editor');
 const pdfWrapper = document.getElementById('pdf-wrapper'); 
 
@@ -31,7 +32,6 @@ btnActualizar.addEventListener('click', () => {
 contenedorEditor.addEventListener('mousedown', (e) => {
     if (e.target.id === 'contenedor-editor' || e.target.id === 'pdf-wrapper' || e.target.id === 'pdf-canvas') {
         if (elementoSeleccionado) {
-            elementoSeleccionado.style.outline = 'none';
             elementoSeleccionado.style.boxShadow = 'none';
             elementoSeleccionado = null;
         }
@@ -40,10 +40,13 @@ contenedorEditor.addEventListener('mousedown', (e) => {
 
 function seleccionarElemento(elemento) {
     if (elementoSeleccionado) {
-        elementoSeleccionado.style.outline = 'none';
         elementoSeleccionado.style.boxShadow = 'none';
     }
     elementoSeleccionado = elemento;
+    
+    // Elevamos el z-index del elemento seleccionado para que siempre esté arriba al interactuar
+    contadorZIndex++;
+    elementoSeleccionado.style.zIndex = contadorZIndex;
     elementoSeleccionado.style.boxShadow = '0 0 0 2px #3b82f6';
     elemento.focus();
 
@@ -100,6 +103,8 @@ function hacerDraggable(elemento) {
 }
 
 function registrarNuevoElemento(elemento) {
+    contadorZIndex++;
+    elemento.style.zIndex = contadorZIndex;
     elemento.tabIndex = 0;
     hacerDraggable(elemento);
     elemento.dataset.page = pageNum;
@@ -108,18 +113,21 @@ function registrarNuevoElemento(elemento) {
     pdfWrapper.appendChild(elemento); 
 }
 
-// Edición de Tamaño en Píxeles
+// Edición de Tamaño en Píxeles robusta para Imágenes, Textos y Borradores
 document.getElementById('btn-aumentar').addEventListener('click', () => {
     if (!elementoSeleccionado) return;
+    
     if (elementoSeleccionado.tagName === 'IMG') {
-        let anchoActual = elementoSeleccionado.clientWidth || elementoSeleccionado.width || 150;
+        // Forzamos el ancho actual explícito en píxeles basándonos en el tamaño renderizado real
+        let anchoActual = elementoSeleccionado.offsetWidth || 150;
         elementoSeleccionado.style.width = (anchoActual + 20) + 'px';
+        elementoSeleccionado.style.height = 'auto'; // Mantener proporción de la imagen
     } else if (elementoSeleccionado.contentEditable === "true") {
         let size = parseInt(window.getComputedStyle(elementoSeleccionado).fontSize);
         elementoSeleccionado.style.fontSize = (size + 2) + 'px';
     } else {
-        let anchoActual = elementoSeleccionado.clientWidth || 100;
-        let altoActual = elementoSeleccionado.clientHeight || 20;
+        let anchoActual = elementoSeleccionado.offsetWidth || 100;
+        let altoActual = elementoSeleccionado.offsetHeight || 20;
         elementoSeleccionado.style.width = (anchoActual + 20) + 'px';
         elementoSeleccionado.style.height = (altoActual + 10) + 'px';
     }
@@ -127,16 +135,18 @@ document.getElementById('btn-aumentar').addEventListener('click', () => {
 
 document.getElementById('btn-reducir').addEventListener('click', () => {
     if (!elementoSeleccionado) return;
+    
     if (elementoSeleccionado.tagName === 'IMG') {
-        let anchoActual = elementoSeleccionado.clientWidth || elementoSeleccionado.width || 150;
+        let anchoActual = elementoSeleccionado.offsetWidth || 150;
         let newWidth = Math.max(30, anchoActual - 20);
         elementoSeleccionado.style.width = newWidth + 'px';
+        elementoSeleccionado.style.height = 'auto';
     } else if (elementoSeleccionado.contentEditable === "true") {
         let size = Math.max(8, parseInt(window.getComputedStyle(elementoSeleccionado).fontSize) - 2);
         elementoSeleccionado.style.fontSize = size + 'px';
     } else {
-        let anchoActual = elementoSeleccionado.clientWidth || 100;
-        let altoActual = elementoSeleccionado.clientHeight || 20;
+        let anchoActual = elementoSeleccionado.offsetWidth || 100;
+        let altoActual = elementoSeleccionado.offsetHeight || 20;
         let newW = Math.max(20, anchoActual - 20);
         let newH = Math.max(10, altoActual - 10);
         elementoSeleccionado.style.width = newW + 'px';
@@ -178,7 +188,7 @@ document.getElementById('upload-image').addEventListener('change', (e) => {
         nuevaImagen.style.position = 'absolute';
         nuevaImagen.style.left = '50px';
         nuevaImagen.style.top = '50px';
-        nuevaImagen.style.width = '150px'; 
+        nuevaImagen.style.width = '150px'; // Ancho inicial fijo para que offsetWidth responda perfecto
         nuevaImagen.setAttribute('draggable', false);
         registrarNuevoElemento(nuevaImagen);
     };
@@ -240,7 +250,6 @@ function renderPage(num) {
         } else {
             el.style.display = 'none';
             if (elementoSeleccionado === el) {
-                el.style.outline = 'none';
                 el.style.boxShadow = 'none';
                 elementoSeleccionado = null;
             }

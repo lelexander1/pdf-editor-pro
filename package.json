@@ -1,6 +1,6 @@
 {
   "name": "pdf-editor-pro",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Editor de PDF avanzado con Electron",
   "main": "main.js",
   "scripts": {
